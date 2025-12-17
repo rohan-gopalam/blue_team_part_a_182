@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Evaluation Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/ui.css">
+</head>
+<body>
+  <div class="platform-container">
+    <!-- Top Command Bar -->
+    <header class="command-bar">
+      <div class="command-left">
+        <button class="nav-icon-btn" id="nav-toggle" aria-label="Toggle navigation">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <div class="logo-section">
+          <div class="logo-badge">LLM</div>
+          <span class="platform-name">Evaluation Platform</span>
+        </div>
+      </div>
+      <div class="command-center">
+        <div class="quick-search">
+          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          <input type="search" id="global-search" placeholder="Search evaluations..." autocomplete="off">
+        </div>
+      </div>
+      <div class="command-right">
+        <div class="color-picker-wrapper">
+          <button class="icon-btn" id="color-picker-btn" aria-label="Color scheme">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="13.5" cy="6.5" r=".5"></circle>
+              <circle cx="17.5" cy="10.5" r=".5"></circle>
+              <circle cx="8.5" cy="7.5" r=".5"></circle>
+              <circle cx="6.5" cy="12.5" r=".5"></circle>
+              <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path>
+            </svg>
+          </button>
+          <div class="color-picker-menu" id="color-picker-menu" hidden>
+            <div class="color-scheme-grid">
+              <button class="color-scheme-option" data-scheme="ocean" data-color="#0ea5e9">
+                <div class="color-preview" style="background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);"></div>
+                <span>Ocean</span>
+              </button>
+              <button class="color-scheme-option" data-scheme="forest" data-color="#10b981">
+                <div class="color-preview" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);"></div>
+                <span>Forest</span>
+              </button>
+              <button class="color-scheme-option" data-scheme="sunset" data-color="#f59e0b">
+                <div class="color-preview" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);"></div>
+                <span>Sunset</span>
+              </button>
+              <button class="color-scheme-option" data-scheme="purple" data-color="#a855f7">
+                <div class="color-preview" style="background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);"></div>
+                <span>Purple</span>
+              </button>
+              <button class="color-scheme-option" data-scheme="rose" data-color="#f43f5e">
+                <div class="color-preview" style="background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);"></div>
+                <span>Rose</span>
+              </button>
+              <button class="color-scheme-option" data-scheme="slate" data-color="#64748b">
+                <div class="color-preview" style="background: linear-gradient(135deg, #64748b 0%, #475569 100%);"></div>
+                <span>Slate</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <button class="icon-btn" id="theme-toggle" aria-label="Toggle theme">
+          <svg class="theme-icon-light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="theme-icon-dark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" hidden>
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="platform-body">
+      <!-- Side Navigation -->
+      <nav class="side-nav" id="side-nav">
+        <div class="nav-section">
+          <a href="#" class="nav-item active" data-page="explore">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
+            </svg>
+            <span>Explore</span>
+          </a>
+          <a href="#" class="nav-item" data-page="compare">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+            </svg>
+            <span>Compare</span>
+          </a>
+          <a href="#" class="nav-item" data-page="insights">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="20" x2="12" y2="10"></line>
+              <line x1="18" y1="20" x2="18" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="16"></line>
+            </svg>
+            <span>Insights</span>
+          </a>
+        </div>
+        <div class="nav-divider"></div>
+        <div class="nav-section">
+          <div class="nav-label">Filters</div>
+          <div class="filter-chips" id="filter-chips">
+            <button class="chip" data-filter="assignment" hidden>
+              <span class="chip-label"></span>
+              <svg class="chip-close" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+            <button class="chip" data-filter="model" hidden>
+              <span class="chip-label"></span>
+              <svg class="chip-close" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <button class="filter-btn" id="filter-menu-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+            <span>Add Filter</span>
+          </button>
+        </div>
+        <div class="filter-menu" id="filter-menu" hidden>
+          <div class="filter-menu-header">
+            <h3>Filter Options</h3>
+            <button class="filter-menu-close" id="filter-menu-close">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <div class="filter-menu-content">
+            <div class="filter-group">
+              <label class="filter-group-label">Assignment</label>
+              <select class="filter-select" id="filter-assignment">
+                <option value="">All Assignments</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-group-label">Model</label>
+              <select class="filter-select" id="filter-model">
+                <option value="">All Models</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-group-label">Sort</label>
+              <select class="filter-select" id="sort-order">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="assignment">By Assignment</option>
+                <option value="model">By Model</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Main Content Area -->
+      <main class="main-workspace">
+        <!-- Explore Page -->
+        <div class="page-content active" id="page-explore">
+          <div class="page-header-section">
+            <div class="metrics-row">
+              <div class="metric-box">
+                <div class="metric-value" id="metric-total">0</div>
+                <div class="metric-label">Evaluations</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-value" id="metric-assignments">0</div>
+                <div class="metric-label">Assignments</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-value" id="metric-models">0</div>
+                <div class="metric-label">Models</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-value" id="metric-filtered">0</div>
+                <div class="metric-label">Showing</div>
+              </div>
+            </div>
+          </div>
+          <div class="evaluations-grid" id="evaluations-grid"></div>
+          <div class="error-banner" id="error-banner" hidden></div>
+        </div>
+
+        <!-- Compare Page -->
+        <div class="page-content" id="page-compare" hidden>
+          <div class="compare-header">
+            <h2 class="page-title">Model Performance Comparison</h2>
+            <p class="page-subtitle">Compare how different models performed on the same homework assignment</p>
+          </div>
+          <div class="compare-controls">
+            <div class="compare-selector">
+              <label>Assignment</label>
+              <select class="compare-select" id="compare-assignment">
+                <option value="">Select Assignment...</option>
+              </select>
+            </div>
+            <div class="compare-selection">
+              <div class="selection-group">
+                <label>Model 1</label>
+                <select class="compare-select" id="compare-item-1">
+                  <option value="">Select Model...</option>
+                </select>
+              </div>
+              <div class="selection-group">
+                <label>Model 2</label>
+                <select class="compare-select" id="compare-item-2">
+                  <option value="">Select Model...</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="compare-results" id="compare-results"></div>
+        </div>
+
+        <!-- Insights Page -->
+        <div class="page-content" id="page-insights" hidden>
+          <div class="insights-header">
+            <h2 class="page-title">Performance Insights</h2>
+            <p class="page-subtitle">AI-generated analysis of model performance</p>
+          </div>
+          <div class="insights-tabs">
+            <button class="insight-tab active" data-insight-type="assignments">By Assignment</button>
+            <button class="insight-tab" data-insight-type="models">By Model</button>
+          </div>
+          <div class="insights-content">
+            <div class="insights-panel active" id="insights-assignments"></div>
+            <div class="insights-panel" id="insights-models"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Evaluation Detail Overlay -->
+    <div class="overlay" id="detail-overlay" hidden>
+      <div class="overlay-backdrop" id="overlay-backdrop"></div>
+      <div class="overlay-panel">
+        <div class="overlay-header">
+          <div class="overlay-title-section">
+            <h2 class="overlay-title" id="overlay-title"></h2>
+            <div class="overlay-meta" id="overlay-meta"></div>
+          </div>
+          <button class="overlay-close" id="overlay-close">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="overlay-body">
+          <div class="overlay-badges" id="overlay-badges"></div>
+          <div class="overlay-files" id="overlay-files"></div>
+          <div class="overlay-content" id="overlay-content"></div>
+        </div>
+        <div class="overlay-footer">
+          <div class="overlay-qa">
+            <div class="qa-header-row">
+              <h4>Ask About This</h4>
+              <span class="qa-status" id="qa-status">Ready</span>
+            </div>
+            <div class="qa-chat" id="qa-chat"></div>
+            <form class="qa-form" id="qa-form">
+              <input type="text" class="qa-input" id="qa-input" placeholder="Ask a question..." autocomplete="off">
+              <button type="submit" class="qa-submit">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat Toggle Button (when closed) -->
+    <button class="assistant-toggle-btn" id="assistant-toggle-btn" hidden>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+    </button>
+
+    <!-- Draggable & Resizable AI Assistant -->
+    <div class="assistant-window" id="assistant-window">
+      <!-- Corner handles -->
+      <div class="assistant-resize-handle assistant-resize-nw" id="assistant-resize-nw"></div>
+      <div class="assistant-resize-handle assistant-resize-ne" id="assistant-resize-ne"></div>
+      <div class="assistant-resize-handle assistant-resize-sw" id="assistant-resize-sw"></div>
+      <div class="assistant-resize-handle assistant-resize-se" id="assistant-resize-se"></div>
+      <!-- Edge handles -->
+      <div class="assistant-resize-handle assistant-resize-n" id="assistant-resize-n"></div>
+      <div class="assistant-resize-handle assistant-resize-s" id="assistant-resize-s"></div>
+      <div class="assistant-resize-handle assistant-resize-e" id="assistant-resize-e"></div>
+      <div class="assistant-resize-handle assistant-resize-w" id="assistant-resize-w"></div>
+      <div class="assistant-header-bar" id="assistant-drag-handle">
+        <div class="assistant-header-content">
+          <div class="assistant-title-row">
+            <svg class="assistant-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span class="assistant-title">AI Assistant</span>
+            <span class="assistant-status-text" id="assistant-status">Select model</span>
+          </div>
+        </div>
+        <div class="assistant-controls-bar">
+          <button class="assistant-minimize" id="assistant-minimize">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <button class="assistant-close" id="assistant-close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="assistant-body" id="assistant-body">
+        <div class="assistant-config">
+          <select class="assistant-model-select" id="assistant-model-select">
+            <option value="">Choose Model...</option>
+            <option value="Llama-3.2-1B-Instruct-q4f16_1-MLC">Llama 3.2 1B</option>
+            <option value="Llama-3.2-3B-Instruct-q4f16_1-MLC">Llama 3.2 3B</option>
+            <option value="SmolLM2-1.7B-Instruct-q4f16_1-MLC">SmolLM2 1.7B</option>
+            <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen 2.5 1.5B</option>
+          </select>
+          <div class="assistant-rag-control">
+            <label class="rag-toggle">
+              <input type="checkbox" id="assistant-rag-toggle">
+              <span class="rag-slider"></span>
+              <span class="rag-label">RAG</span>
+            </label>
+            <span class="rag-status" id="assistant-rag-status">Off</span>
+          </div>
+          <div class="assistant-rag-filters" id="assistant-rag-filters" hidden>
+            <select class="assistant-rag-filter" id="assistant-rag-filter-hw">
+              <option value="">All Assignments</option>
+            </select>
+            <select class="assistant-rag-filter" id="assistant-rag-filter-model">
+              <option value="">All Models</option>
+            </select>
+          </div>
+          <button class="assistant-clear" id="assistant-clear">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="assistant-loading" id="assistant-loading" hidden>
+          <div class="loading-spinner"></div>
+          <p class="loading-text" id="loading-text">Loading...</p>
+          <div class="loading-bar">
+            <div class="loading-progress" id="loading-progress"></div>
+          </div>
+        </div>
+        <div class="assistant-messages" id="assistant-messages">
+          <div class="assistant-msg assistant-msg-bot">
+            <div class="msg-content">
+              <p>Hello! Select a model above to start. With RAG enabled, I can search through all evaluations to answer your questions.</p>
+            </div>
+          </div>
+        </div>
+        <form class="assistant-form" id="assistant-form">
+          <input type="text" class="assistant-input" id="assistant-input" placeholder="Ask about models, assignments..." autocomplete="off" disabled>
+          <button type="submit" class="assistant-send" id="assistant-send" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/app.js"></script>
+  <script type="module" src="assets/assistant.js"></script>
+</body>
+</html>
