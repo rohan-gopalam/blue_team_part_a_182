@@ -14,6 +14,7 @@ const appState = {
   visiblePosts: [],
   fileRegistry: {},
   analysisData: null,
+  staticInsights: null, // Added to store imported static data
   openPost: null,
   activeThread: null,
   qaHistory: [],
@@ -1195,12 +1196,128 @@ function renderMetrics() {
 
 function renderEvaluations() {
   if (!domRefs.evaluationsGrid) return;
+
+  // Check if we should show the homework overview (no filters active)
+  const hasAssignmentFilter = !!domRefs.filterAssignment?.value;
+  const hasModelFilter = !!domRefs.filterModel?.value;
+  const hasSearch = !!domRefs.globalSearch?.value;
+
+  if (!hasAssignmentFilter && !hasModelFilter && !hasSearch) {
+    renderHomeworksGrid();
+    return;
+  }
+
   if (!appState.visiblePosts.length) {
     domRefs.evaluationsGrid.innerHTML = '<div class="empty-state"><p>No evaluations match the current filters.</p><p style="margin-top: var(--space-2); color: var(--text-tertiary); font-size: 0.875rem;">Try adjusting your filters or search terms.</p></div>';
     return;
   }
+
+  let contentHTML = "";
+
+  // If filtered by Assignment, show the insight summary at the top
+  if (hasAssignmentFilter && !hasModelFilter && !hasSearch) {
+      const hwId = domRefs.filterAssignment.value;
+      const insight = getHomeworkInsight(hwId);
+      if (insight) {
+          contentHTML += renderInsightSummaryCard(hwId, insight);
+      }
+  }
+
   const items = appState.visiblePosts.map((post, index) => renderEvaluationCard(post, index));
+  contentHTML += items.join("\n");
+  
+  domRefs.evaluationsGrid.innerHTML = contentHTML;
+}
+
+function getHomeworkInsight(hwId) {
+    // Try dynamic data first, then static
+    if (appState.analysisData?.homework?.[hwId]) {
+        return appState.analysisData.homework[hwId];
+    }
+    if (appState.staticInsights?.homework?.[hwId]) {
+        return appState.staticInsights.homework[hwId];
+    }
+    return null;
+}
+
+function renderInsightSummaryCard(title, data) {
+    const content = data.content || data.summary || "";
+    if (!content) return "";
+    
+    // Format the markdown content
+    const formatted = formatInsightMarkdown(content);
+    
+    return `
+    <div class="insight-summary-card" style="grid-column: 1 / -1; background: var(--surface-elevated); border: 1px solid var(--primary); border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-6);">
+        <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); color: var(--primary);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <h3 style="margin: 0; font-size: 1.25rem;">AI Analysis: ${escapeHTML(title)}</h3>
+        </div>
+        <div class="insight-content" style="font-size: 0.95rem; line-height: 1.6;">
+            ${formatted}
+        </div>
+    </div>
+    `;
+}
+
+function renderHomeworksGrid() {
+  const hwGroups = {};
+  appState.posts.forEach(post => {
+    const metrics = post.metrics || {};
+    const hw = metrics.homework_id || "Unknown";
+    if (!hwGroups[hw]) {
+        hwGroups[hw] = { count: 0, models: new Set() };
+    }
+    hwGroups[hw].count++;
+    if (metrics.model_name) {
+        hwGroups[hw].models.add(metrics.model_name);
+    }
+  });
+
+  const sortedHw = Object.keys(hwGroups).sort((a, b) => {
+    const numA = parseInt(a.replace(/\D/g, ''), 10) || 0;
+    const numB = parseInt(b.replace(/\D/g, ''), 10) || 0;
+    if (a === "Unknown") return 1;
+    if (b === "Unknown") return -1;
+    if (numA !== numB) return numA - numB;
+    return a.localeCompare(b);
+  });
+
+  const items = sortedHw.map(hw => {
+    const info = hwGroups[hw];
+    return `
+      <div class="evaluation-card homework-card" data-hw="${escapeAttr(hw)}" style="cursor: pointer; border-left: 4px solid var(--primary);">
+        <h3 class="eval-title">${escapeHTML(hw)}</h3>
+        <div class="eval-meta">
+          <span>${info.count} evaluations</span>
+          <span>•</span>
+          <span>${info.models.size} models</span>
+        </div>
+        <div class="eval-badges" style="margin-top: var(--space-2);">
+             ${Array.from(info.models).sort().slice(0, 3).map(m => `<span class="badge badge-model">${escapeHTML(m)}</span>`).join('')}
+             ${info.models.size > 3 ? `<span class="badge badge-model">+${info.models.size - 3} more</span>` : ''}
+        </div>
+        <div class="eval-stats" style="margin-top: var(--space-3); color: var(--primary);">
+          View Evaluations →
+        </div>
+      </div>`;
+  });
+
   domRefs.evaluationsGrid.innerHTML = items.join("\n");
+
+  // Add click listeners
+  domRefs.evaluationsGrid.querySelectorAll('.homework-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const hw = card.dataset.hw;
+      if (domRefs.filterAssignment) {
+        domRefs.filterAssignment.value = hw;
+        // Trigger change event to update filters
+        domRefs.filterAssignment.dispatchEvent(new Event('change'));
+      }
+    });
+  });
 }
 
 function setupCardReveal() {
@@ -1334,12 +1451,30 @@ async function renderAssignmentInsights() {
     const formattedContent = formatInsightMarkdown(data.content);
     return `
       <div class="insight-item">
-        <h3 class="insight-item-title">${escapeHTML(hwId)} <span class="insight-count">(${data.count} evaluations)</span></h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <h3 class="insight-item-title" style="margin: 0;">${escapeHTML(hwId)} <span class="insight-count">(${data.count} evaluations)</span></h3>
+            <button class="view-hw-btn" data-hw="${escapeAttr(hwId)}" style="font-size: 0.8rem; padding: 4px 8px; cursor: pointer; background: var(--surface-hover); border: 1px solid var(--border-default); border-radius: 4px; color: var(--primary);">View Evals</button>
+        </div>
         <div class="insight-item-content">${formattedContent}</div>
       </div>
     `;
   }).join('');
   domRefs.insightsAssignments.innerHTML = items;
+
+  // Add listeners
+  domRefs.insightsAssignments.querySelectorAll('.view-hw-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const hw = btn.dataset.hw;
+          // Switch to Explore tab
+          switchPage('explore');
+          // Set filter
+          if (domRefs.filterAssignment) {
+              domRefs.filterAssignment.value = hw;
+              domRefs.filterAssignment.dispatchEvent(new Event('change'));
+          }
+      });
+  });
 }
 
 async function renderModelInsights() {
@@ -1513,6 +1648,15 @@ async function initialize() {
     
     // Expose to window for assistant.js
     window.appState = appState;
+
+    // Load static insights
+    try {
+      const { insightsData } = await import('./insights_data.js');
+      appState.staticInsights = insightsData;
+    } catch (e) {
+      console.warn("Could not load static insights:", e);
+    }
+
     const params = new URLSearchParams(window.location.search);
     const threadId = params.get('thread');
     if (threadId) {

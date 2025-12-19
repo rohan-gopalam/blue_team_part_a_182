@@ -85,22 +85,29 @@ def generate_homework_insight(client: Any, hw_id: str, posts: List[Dict[str, Any
     
     posts_summary = '\n\n'.join(summary_parts)
     
-    prompt = f"""Based on these detailed student posts about {hw_id}, provide a comprehensive analysis in the following EXACT format:
+    prompt = f"""Based on these detailed student posts about {hw_id}, provide a comprehensive analysis.
+    
+    The user specifically wants to know:
+    - Which problems were hard for LLMs?
+    - Which LLMs were generally better on this homework?
+    - What were the common themes or strategies used?
 
-1. **Easiest/Hardest Problems:** [Cite specific problem numbers and concrete examples from the posts]
+    Format your response in the following EXACT structure:
 
-2. **Common Themes and Strategies:** [Include specific techniques, prompts, or methods mentioned by students]
+    1. **Problem Difficulty Assessment:** [Identify easy vs challenging problems, citing specific examples and reasons]
 
-3. **Trends in Model Performance:** [Which specific models worked best for which types of problems, with examples]
+    2. **Model Performance Trends:** [Which models excelled or struggled? Compare their performance on specific tasks]
 
-4. **Notable Insights:** [Specific challenges, successes, or unexpected findings from student feedback]
+    3. **Approaches & Methodologies:** [Common prompts, strategies, or workflows used by students]
 
-Posts summary:
-{posts_summary}
+    4. **Key Takeaways:** [Summary of the most interesting findings]
 
-Total posts analyzed: {len(posts)}
+    Posts summary:
+    {posts_summary}
 
-IMPORTANT: You MUST use the exact numbered format shown above (1. **Title:** followed by content). Each section should be 2-4 sentences with specific examples and concrete details from the student posts."""
+    Total posts analyzed: {len(posts)}
+
+    IMPORTANT: Use the numbered bold headings exactly as shown above. Be specific and cite examples."""
 
     try:
         response = client.chat.completions.create(
