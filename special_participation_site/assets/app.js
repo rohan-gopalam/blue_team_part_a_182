@@ -26,6 +26,7 @@ const appState = {
   pdfLibrary: null,
   aiEnabled: false, // AI features disabled by default
   viewMode: "list", // Default to list view
+  comparePosts: [], // Posts selected for comparison
   insightFilters: {
     assignments: new Set(),
     models: new Set()
@@ -69,9 +70,9 @@ function initializeDOMReferences() {
   domRefs.errorBanner = document.getElementById("error-banner");
   
   // Compare page
-  domRefs.compareAssignment = document.getElementById("compare-assignment");
-  domRefs.compareItem1 = document.getElementById("compare-item-1");
-  domRefs.compareItem2 = document.getElementById("compare-item-2");
+  domRefs.comparePostSelect = document.getElementById("compare-post-select");
+  domRefs.compareAddBtn = document.getElementById("compare-add-btn");
+  domRefs.compareSelectedPosts = document.getElementById("compare-selected-posts");
   domRefs.compareResults = document.getElementById("compare-results");
   
   // Insights page
@@ -374,8 +375,17 @@ function updateAIFeaturesVisibility() {
   
   // Show/hide QA section in overlay
   const overlayQA = document.getElementById("overlay-qa");
+  const overlayFooter = document.getElementById("overlay-footer");
   if (overlayQA) {
     overlayQA.hidden = !appState.aiEnabled;
+  }
+  // Hide the entire footer if AI is disabled
+  if (overlayFooter) {
+    if (!appState.aiEnabled) {
+      overlayFooter.style.display = "none";
+    } else {
+      overlayFooter.style.display = "";
+    }
   }
   
   // Notify assistant.js if it's loaded
@@ -515,18 +525,22 @@ function setupEventHandlers() {
   }
   
   // Compare page
-  const compareAssignment = document.getElementById("compare-assignment");
-  if (compareAssignment) {
-    compareAssignment.addEventListener("change", () => {
-      updateCompareModelOptions();
-      renderComparison();
+  if (domRefs.compareAddBtn) {
+    domRefs.compareAddBtn.addEventListener("click", addPostToComparison);
+  }
+  
+  if (domRefs.comparePostSelect) {
+    domRefs.comparePostSelect.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addPostToComparison();
+      }
     });
   }
   
-  if (domRefs.compareItem1 && domRefs.compareItem2) {
-    [domRefs.compareItem1, domRefs.compareItem2].forEach(select => {
-      select.addEventListener("change", renderComparison);
-    });
+  // Initialize compare state
+  if (!appState.comparePosts) {
+    appState.comparePosts = [];
   }
   
   // Insights tabs
@@ -694,267 +708,174 @@ function updateFilterChips() {
 
 // Comparison
 function initializeComparePage() {
-  if (!domRefs.compareAssignment) return;
+  if (!domRefs.comparePostSelect) return;
   
-  // Populate assignment dropdown
-  const assignments = new Set();
-  appState.posts.forEach(p => {
-    if (p.metrics?.homework_id) assignments.add(p.metrics.homework_id);
+  // Populate post dropdown with all posts
+  const sortedPosts = appState.posts.slice().sort((a, b) => {
+    const dateA = parseDate(a.created_at);
+    const dateB = parseDate(b.created_at);
+    if (!dateA && !dateB) return 0;
+    if (!dateA) return 1;
+    if (!dateB) return -1;
+    return dateB - dateA; // Newest first
   });
-  const sortedAssignments = Array.from(assignments).sort((a, b) => {
-    const numA = parseInt(a.replace(/\D/g, ''), 10) || 0;
-    const numB = parseInt(b.replace(/\D/g, ''), 10) || 0;
-    return numA - numB;
-  });
   
-  const assignmentHTML = '<option value="">Select Assignment...</option>' + sortedAssignments.map(opt => 
-    `<option value="${escapeAttr(opt)}">${escapeHTML(opt)}</option>`
-  ).join('');
+  const optionsHTML = '<option value="">Select a post to add...</option>' + sortedPosts.map(post => {
+    const metrics = post.metrics || {};
+    const hw = metrics.homework_id || "Unknown";
+    const model = metrics.model_name || "Unknown";
+    const title = post.title || "Untitled";
+    const shortTitle = title.length > 60 ? title.slice(0, 60) + "..." : title;
+    return `<option value="${post.number}">${escapeHTML(hw)} - ${escapeHTML(model)}: ${escapeHTML(shortTitle)}</option>`;
+  }).join('');
   
-  domRefs.compareAssignment.innerHTML = assignmentHTML;
+  domRefs.comparePostSelect.innerHTML = optionsHTML;
+  renderCompareSelectedPosts();
+  renderComparison();
 }
 
-function updateCompareModelOptions() {
-  if (!domRefs.compareItem1 || !domRefs.compareItem2 || !domRefs.compareAssignment) return;
+function addPostToComparison() {
+  if (!domRefs.comparePostSelect) return;
   
-  const selectedAssignment = domRefs.compareAssignment.value;
-  if (!selectedAssignment) {
-    domRefs.compareItem1.innerHTML = '<option value="">Select Model...</option>';
-    domRefs.compareItem2.innerHTML = '<option value="">Select Model...</option>';
+  const selectedPostId = domRefs.comparePostSelect.value;
+  if (!selectedPostId) return;
+  
+  const post = appState.posts.find(p => String(p.number) === selectedPostId);
+  if (!post) return;
+  
+  // Check if already added
+  if (appState.comparePosts.some(p => p.number === post.number)) {
+    return; // Already in comparison
+  }
+  
+  appState.comparePosts.push(post);
+  domRefs.comparePostSelect.value = "";
+  renderCompareSelectedPosts();
+  renderComparison();
+}
+
+function removePostFromComparison(postNumber) {
+  appState.comparePosts = appState.comparePosts.filter(p => p.number !== postNumber);
+  renderCompareSelectedPosts();
+  renderComparison();
+}
+
+function renderCompareSelectedPosts() {
+  if (!domRefs.compareSelectedPosts) return;
+  
+  if (appState.comparePosts.length === 0) {
+    domRefs.compareSelectedPosts.innerHTML = '<p class="compare-empty-message">No posts selected. Add posts above to start comparing.</p>';
     return;
   }
   
-  // Get models that have posts for this assignment
-  const models = new Set();
-  appState.posts.forEach(p => {
-    if (p.metrics?.homework_id === selectedAssignment && p.metrics?.model_name) {
-      models.add(p.metrics.model_name);
-    }
+  const postsHTML = appState.comparePosts.map((post, index) => {
+    const metrics = post.metrics || {};
+    const hw = metrics.homework_id || "Unknown";
+    const model = metrics.model_name || "Unknown";
+    const title = post.title || "Untitled";
+    
+    return `
+      <div class="compare-selected-item">
+        <div class="compare-selected-info">
+          <span class="compare-selected-number">${index + 1}</span>
+          <div class="compare-selected-details">
+            <div class="compare-selected-title">${escapeHTML(title)}</div>
+            <div class="compare-selected-meta">
+              <span class="badge badge-hw">${escapeHTML(hw)}</span>
+              <span class="badge badge-model">${escapeHTML(model)}</span>
+            </div>
+          </div>
+        </div>
+        <button class="compare-remove-btn" data-post-number="${post.number}" aria-label="Remove from comparison">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    `;
+  }).join('');
+  
+  domRefs.compareSelectedPosts.innerHTML = postsHTML;
+  
+  // Add remove button listeners
+  domRefs.compareSelectedPosts.querySelectorAll('.compare-remove-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const postNumber = parseInt(btn.dataset.postNumber, 10);
+      removePostFromComparison(postNumber);
+    });
   });
-  
-  const sortedModels = Array.from(models).sort();
-  const optionHTML = '<option value="">Select Model...</option>' + sortedModels.map(opt => 
-    `<option value="${escapeAttr(opt)}">${escapeHTML(opt)}</option>`
-  ).join('');
-  
-  domRefs.compareItem1.innerHTML = optionHTML;
-  domRefs.compareItem2.innerHTML = optionHTML;
 }
 
-async function renderComparison() {
+function renderComparison() {
   if (!domRefs.compareResults) return;
   
-  const assignment = domRefs.compareAssignment?.value || "";
-  const model1 = domRefs.compareItem1?.value || "";
-  const model2 = domRefs.compareItem2?.value || "";
-  
-  if (!assignment || !model1 || !model2) {
-    domRefs.compareResults.innerHTML = '<div class="empty-state"><p>Select an assignment and two models to compare</p></div>';
+  if (appState.comparePosts.length === 0) {
+    domRefs.compareResults.innerHTML = '<div class="empty-state"><p>Add posts above to view them side by side</p></div>';
     return;
   }
   
-  // Check if AI is enabled for LLM comparison
-  if (!appState.aiEnabled) {
-    domRefs.compareResults.innerHTML = `
-      <div class="empty-state">
-        <p>AI features are disabled. Enable AI features to use intelligent model comparison.</p>
-        <p style="margin-top: var(--space-2); color: var(--text-tertiary); font-size: 0.875rem;">
-          Use the AI toggle button in the top right to enable AI capabilities.
-        </p>
-      </div>
-    `;
-    return;
-  }
-  
-  // Get posts for each model on this specific assignment
-  const posts1 = appState.posts.filter(p => 
-    p.metrics?.homework_id === assignment && p.metrics?.model_name === model1
-  );
-  const posts2 = appState.posts.filter(p => 
-    p.metrics?.homework_id === assignment && p.metrics?.model_name === model2
-  );
-  
-  if (posts1.length === 0 && posts2.length === 0) {
-    domRefs.compareResults.innerHTML = '<div class="empty-state"><p>No evaluations found for these selections</p></div>';
-    return;
-  }
-  
-  // Show loading state
-  domRefs.compareResults.innerHTML = `
-    <div class="compare-loading">
-      <div class="loading-spinner"></div>
-      <p>Analyzing model performance...</p>
-    </div>
-  `;
-  
-  try {
-    // Load full thread content for both models
-    const threads1 = await Promise.all(posts1.map(p => buildThreadContext(p)));
-    const threads2 = await Promise.all(posts2.map(p => buildThreadContext(p)));
+  // Render posts in a linear stack
+  const postsHTML = appState.comparePosts.map((post, index) => {
+    const metrics = post.metrics || {};
+    const hw = metrics.homework_id || "Unknown";
+    const model = metrics.model_name || "Unknown";
+    const title = post.title || "Untitled";
+    const created = post.created_at ? new Date(post.created_at) : null;
+    const createdStr = created && !Number.isNaN(created.getTime()) ? created.toLocaleString() : "";
+    const author = post.user?.name || "Unknown";
+    const role = post.user?.course_role || "";
+    const files = getPostFiles(post);
     
-    // Generate intelligent comparison using LLM
-    const comparison = await generateLLMComparison(
-      model1, model2, assignment,
-      threads1, threads2,
-      posts1, posts2
-    );
-    
-    // Display the comparison
-    domRefs.compareResults.innerHTML = `
-      <div class="compare-analysis">
-        <div class="compare-header">
-          <h3>Performance Analysis: ${escapeHTML(model1)} vs ${escapeHTML(model2)} on ${escapeHTML(assignment)}</h3>
-        </div>
-        <div class="compare-content">
-          ${comparison}
-        </div>
-      </div>
-    `;
-  } catch (error) {
-    console.error("Error generating comparison:", error);
-    domRefs.compareResults.innerHTML = `
-      <div class="empty-state">
-        <p>Error generating comparison: ${escapeHTML(error.message)}</p>
-        <p>Please ensure a model is loaded in the AI Assistant tab.</p>
-      </div>
-    `;
-  }
-}
-
-async function generateLLMComparison(model1, model2, assignment, threads1, threads2, posts1, posts2) {
-  // Use shared LLM engine if available, otherwise try to initialize
-  let llmEngine = window.sharedLLMEngine;
-  let webllmLib = window.sharedLLMWebllm;
-  
-  if (!llmEngine) {
-    // Try to initialize a lightweight model for comparison
-    if (!navigator.gpu) {
-      throw new Error("WebGPU not supported. Please load a model in the AI Assistant tab first.");
-    }
-    
-    if (!webllmLib) {
-      webllmLib = await import("https://esm.run/@mlc-ai/web-llm");
-    }
-    
-    // Use a small model for quick analysis
-    llmEngine = await webllmLib.CreateMLCEngine("Llama-3.2-1B-Instruct-q4f16_1-MLC", {
-      initProgressCallback: () => {}
-    });
-  }
-  
-  // Build context from threads
-  const context1 = threads1.map((t, i) => 
-    `=== ${model1} Evaluation ${i + 1} ===\n${t.slice(0, 4000)}`
-  ).join("\n\n");
-  
-  const context2 = threads2.map((t, i) => 
-    `=== ${model2} Evaluation ${i + 1} ===\n${t.slice(0, 4000)}`
-  ).join("\n\n");
-  
-  const prompt = `You are analyzing student evaluations comparing two LLM models on the same homework assignment.
-
-MODEL 1: ${model1} on ${assignment}
-${context1}
-
-MODEL 2: ${model2} on ${assignment}
-${context2}
-
-Analyze and compare these models' performance. Provide a detailed comparison that includes:
-
-1. **Question-by-Question Performance**: For each homework question, identify:
-   - Which model got it correct/incorrect
-   - Specific errors made by each model
-   - Quality of explanations provided
-
-2. **Overall Performance Summary**:
-   - Which model performed better overall
-   - Strengths of each model
-   - Weaknesses of each model
-
-3. **Common Patterns**:
-   - Similar errors both models made
-   - Types of questions each model struggled with
-   - Areas where one model clearly outperformed the other
-
-4. **Specific Examples**: Cite specific instances from the evaluations showing:
-   - Correct answers with good reasoning
-   - Incorrect answers and why they were wrong
-   - Notable differences in approach or quality
-
-Format your response in clear sections with headers. Be specific and reference actual content from the evaluations. Use markdown formatting for readability.`;
-
-  try {
-    const messages = [
-      {
-        role: "system",
-        content: "You are an expert at analyzing LLM performance on academic assignments. Provide detailed, specific comparisons based on the evaluation content."
-      },
-      {
-        role: "user",
-        content: prompt
-      }
-    ];
-    
-    let fullResponse = "";
-    const asyncGenerator = await llmEngine.chat.completions.create({
-      messages: messages,
-      stream: true,
-      max_tokens: 2048,
-      temperature: 0.3
-    });
-    
-    for await (const chunk of asyncGenerator) {
-      const delta = chunk.choices[0]?.delta?.content || "";
-      fullResponse += delta;
-    }
-    
-    // Clean up if we created a temporary engine
-    if (llmEngine !== window.sharedLLMEngine) {
-      try {
-        await llmEngine.unload();
-      } catch (e) {
-        console.warn("Error unloading temp engine:", e);
+    let bodyText = post.document || "(no body text available)";
+    const fileRefs = post.file_refs || [];
+    if (fileRefs && fileRefs.length > 0) {
+      const sorted = [...fileRefs].sort((a, b) => b.position - a.position);
+      for (const ref of sorted) {
+        const pos = ref.position;
+        if (pos >= 0 && pos <= bodyText.length) {
+          const marker = `\n\n[📎 ${ref.filename}]\n\n`;
+          bodyText = bodyText.slice(0, pos) + marker + bodyText.slice(pos);
+        }
       }
     }
     
-    // Convert markdown to HTML
-    return convertMarkdownToHTML(fullResponse);
-  } catch (error) {
-    // Clean up on error
-    if (llmEngine !== window.sharedLLMEngine) {
-      try {
-        await llmEngine.unload();
-      } catch (e) {}
-    }
-    throw error;
-  }
-}
-
-function convertMarkdownToHTML(markdown) {
-  // Simple markdown to HTML converter
-  let html = escapeHTML(markdown);
+    return `
+      <div class="compare-post-card">
+        <div class="compare-post-header">
+          <div class="compare-post-title-section">
+            <h3 class="compare-post-title">${escapeHTML(title)}</h3>
+            <div class="compare-post-meta">
+              <span class="badge badge-hw">${escapeHTML(hw)}</span>
+              <span class="badge badge-model">${escapeHTML(model)}</span>
+              ${createdStr ? `<span class="compare-post-date">${escapeHTML(createdStr)}</span>` : ''}
+              ${author ? `<span class="compare-post-author">by ${escapeHTML(author)}${role ? ` (${escapeHTML(role)})` : ""}</span>` : ''}
+            </div>
+          </div>
+          <button class="compare-post-open-btn" data-post-number="${post.number}">
+            Open Full View
+          </button>
+        </div>
+        ${files && files.length > 0 ? buildFileHTML(files) : ''}
+        <div class="compare-post-content">
+          ${formatPostContent(bodyText, files)}
+        </div>
+      </div>
+    `;
+  }).join('');
   
-  // Headers
-  html = html.replace(/^### (.*$)/gim, '<h4>$1</h4>');
-  html = html.replace(/^## (.*$)/gim, '<h3>$1</h3>');
-  html = html.replace(/^# (.*$)/gim, '<h2>$1</h2>');
+  domRefs.compareResults.innerHTML = `<div class="compare-posts-container">${postsHTML}</div>`;
   
-  // Bold
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  
-  // Lists
-  html = html.replace(/^\- (.*$)/gim, '<li>$1</li>');
-  html = html.replace(/^(\d+)\. (.*$)/gim, '<li>$2</li>');
-  html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-  
-  // Paragraphs
-  html = html.split('\n\n').map(p => {
-    if (!p.trim()) return '';
-    if (p.startsWith('<')) return p; // Already formatted
-    return `<p>${p}</p>`;
-  }).join('\n');
-  
-  return html;
+  // Add click listeners for "Open Full View" buttons
+  domRefs.compareResults.querySelectorAll('.compare-post-open-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const postNumber = parseInt(btn.dataset.postNumber, 10);
+      const post = appState.posts.find(p => p.number === postNumber);
+      if (post) {
+        openOverlay(post);
+      }
+    });
+  });
 }
 
 function handleResultsClick(e) {
@@ -998,10 +919,17 @@ function openOverlay(post) {
   appState.qaHistory = [];
   if (domRefs.qaChat) domRefs.qaChat.innerHTML = "";
   
-  // Update QA section visibility based on AI state
+  // Update QA section visibility based on AI state - always hide if AI is disabled
   const overlayQA = document.getElementById("overlay-qa");
+  const overlayFooter = document.getElementById("overlay-footer");
   if (overlayQA) {
     overlayQA.hidden = !appState.aiEnabled;
+  }
+  // Hide the entire footer if AI is disabled
+  if (overlayFooter && !appState.aiEnabled) {
+    overlayFooter.style.display = "none";
+  } else if (overlayFooter && appState.aiEnabled) {
+    overlayFooter.style.display = "";
   }
   
   if (!appState.aiEnabled) {

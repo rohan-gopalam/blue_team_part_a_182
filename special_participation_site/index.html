@@ -241,29 +241,25 @@
         <!-- Compare Page -->
         <div class="page-content" id="page-compare" hidden>
           <div class="compare-header">
-            <h2 class="page-title">Model Performance Comparison</h2>
-            <p class="page-subtitle">Compare how different models performed on the same homework assignment</p>
+            <h2 class="page-title">Post Comparison</h2>
+            <p class="page-subtitle">Select posts to compare side by side</p>
           </div>
           <div class="compare-controls">
-            <div class="compare-selector">
-              <label>Assignment</label>
-              <select class="compare-select" id="compare-assignment">
-                <option value="">Select Assignment...</option>
+            <div class="compare-add-section">
+              <label>Add Post to Compare</label>
+              <select class="compare-post-select" id="compare-post-select">
+                <option value="">Select a post to add...</option>
               </select>
+              <button class="compare-add-btn" id="compare-add-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add Post
+              </button>
             </div>
-            <div class="compare-selection">
-              <div class="selection-group">
-                <label>Model 1</label>
-                <select class="compare-select" id="compare-item-1">
-                  <option value="">Select Model...</option>
-                </select>
-              </div>
-              <div class="selection-group">
-                <label>Model 2</label>
-                <select class="compare-select" id="compare-item-2">
-                  <option value="">Select Model...</option>
-                </select>
-              </div>
+            <div class="compare-selected-posts" id="compare-selected-posts">
+              <p class="compare-empty-message">No posts selected. Add posts above to start comparing.</p>
             </div>
           </div>
           <div class="compare-results" id="compare-results"></div>
