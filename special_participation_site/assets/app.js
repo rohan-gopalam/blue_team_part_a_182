@@ -60,6 +60,8 @@ function initializeDOMReferences() {
   domRefs.pageExplore = document.getElementById("page-explore");
   domRefs.pageCompare = document.getElementById("page-compare");
   domRefs.pageInsights = document.getElementById("page-insights");
+  domRefs.pageHomework = document.getElementById("page-homework");
+  domRefs.homeworkContent = document.getElementById("homework-content");
   
   // Explore page
   domRefs.evaluationsGrid = document.getElementById("evaluations-grid");
@@ -638,15 +640,22 @@ function switchPage(page) {
   if (domRefs.pageExplore) domRefs.pageExplore.classList.toggle("active", page === "explore");
   if (domRefs.pageCompare) domRefs.pageCompare.classList.toggle("active", page === "compare");
   if (domRefs.pageInsights) domRefs.pageInsights.classList.toggle("active", page === "insights");
+  if (domRefs.pageHomework) domRefs.pageHomework.classList.toggle("active", page === "homework");
   
   if (domRefs.pageExplore) domRefs.pageExplore.hidden = page !== "explore";
   if (domRefs.pageCompare) domRefs.pageCompare.hidden = page !== "compare";
   if (domRefs.pageInsights) domRefs.pageInsights.hidden = page !== "insights";
+  if (domRefs.pageHomework) domRefs.pageHomework.hidden = page !== "homework";
   
     // Load data for compare page
     if (page === "compare") {
       initializeComparePage();
     }
+  
+  // Load homework files when page is opened
+  if (page === "homework") {
+    renderHomeworkFiles();
+  }
   
   // Close side nav on mobile
   if (window.innerWidth < 1024) {
@@ -1700,6 +1709,58 @@ async function renderModelInsights() {
     `;
   }).join('');
   domRefs.insightsModels.innerHTML = items;
+}
+
+// Homework Files
+async function renderHomeworkFiles() {
+  if (!domRefs.homeworkContent) return;
+  
+  // Define homework files structure - simplified to show question PDF, solution PDF, and folder link
+  const homeworkFiles = [];
+  for (let i = 0; i <= 13; i++) {
+    const hwNum = i.toString().padStart(2, '0');
+    const hwId = `hw${i}`;
+    const hwName = `Homework ${i}`;
+    const solutionFolder = `files/cs182_fall25_hw_sol/hw${hwNum}`;
+    const solutionPdf = `${solutionFolder}/hw${hwNum}_solution.pdf`;
+    
+    homeworkFiles.push({
+      id: hwId,
+      name: hwName,
+      question: `files/cs182_fall25_hw/${hwId}.pdf`,
+      solutionPdf: solutionPdf,
+      solutionFolder: solutionFolder
+    });
+  }
+  
+  const items = homeworkFiles.map(hw => {
+    return `
+      <div class="homework-card">
+        <div class="homework-header-card">
+          <h3 class="homework-title">${escapeHTML(hw.name)}</h3>
+        </div>
+        <div class="homework-files-section">
+          <div class="file-group">
+            <h4 class="file-group-title">Question</h4>
+            <a href="${hw.question}" class="file-link question-link" target="_blank">📄 ${escapeHTML(hw.name)} Questions</a>
+          </div>
+          <div class="file-group">
+            <h4 class="file-group-title">Solutions</h4>
+            <div class="solution-links">
+              <a href="${hw.solutionPdf}" class="file-link" target="_blank">📄 Solution PDF</a>
+              <a href="${hw.solutionFolder}/" class="file-link folder-link" target="_blank">📁 View All Solution Files</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  domRefs.homeworkContent.innerHTML = `
+    <div class="homework-grid">
+      ${items}
+    </div>
+  `;
 }
 
 function renderFullPageThread(post) {
