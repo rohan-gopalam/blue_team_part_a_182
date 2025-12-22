@@ -4,6 +4,8 @@ const CONFIG = {
   insightsEndpoint: "public/data/insights.json",
   manifestEndpoint: "files/manifest.json",
   themeStorageKey: "app-theme-preference",
+  aiEnabledStorageKey: "app-ai-enabled",
+  viewModeStorageKey: "app-view-mode",
   pdfLibraryUrl: "https://esm.run/pdfjs-dist@3.11.174",
   pdfWorkerUrl: "https://esm.run/pdfjs-dist@3.11.174/build/pdf.worker.min.js"
 };
@@ -22,6 +24,8 @@ const appState = {
   qaWebllm: null,
   isGeneratingQA: false,
   pdfLibrary: null,
+  aiEnabled: false, // AI features disabled by default
+  viewMode: "list", // Default to list view
   insightFilters: {
     assignments: new Set(),
     models: new Set()
@@ -95,6 +99,12 @@ function initializeDOMReferences() {
   domRefs.themeToggle = document.getElementById("theme-toggle");
   domRefs.colorPickerBtn = document.getElementById("color-picker-btn");
   domRefs.colorPickerMenu = document.getElementById("color-picker-menu");
+  
+  // AI Toggle
+  domRefs.aiToggle = document.getElementById("ai-toggle");
+  
+  // View Toggle
+  domRefs.viewToggle = document.getElementById("view-toggle");
 }
 
 // Data loading functions
@@ -263,6 +273,117 @@ function initializeTheme() {
   applyTheme(stored);
 }
 
+// AI Features Management
+function initializeAIState() {
+  try {
+    const stored = localStorage.getItem(CONFIG.aiEnabledStorageKey);
+    appState.aiEnabled = stored === "true";
+  } catch (e) {
+    appState.aiEnabled = false;
+  }
+  updateAIFeaturesVisibility();
+}
+
+function initializeViewMode() {
+  try {
+    const stored = localStorage.getItem(CONFIG.viewModeStorageKey);
+    appState.viewMode = (stored === "list" || stored === "grid") ? stored : "list";
+  } catch (e) {
+    appState.viewMode = "list";
+  }
+  updateViewModeUI();
+}
+
+function toggleViewMode() {
+  appState.viewMode = appState.viewMode === "list" ? "grid" : "list";
+  try {
+    localStorage.setItem(CONFIG.viewModeStorageKey, appState.viewMode);
+  } catch (e) {
+    console.warn("Could not save view mode:", e);
+  }
+  updateViewModeUI();
+  // Re-render the current view
+  applyFiltersAndUpdate();
+}
+
+function updateViewModeUI() {
+  const viewToggle = domRefs.viewToggle;
+  if (viewToggle) {
+    const iconList = viewToggle.querySelector(".view-icon-list");
+    const iconGrid = viewToggle.querySelector(".view-icon-grid");
+    if (iconList && iconGrid) {
+      iconList.hidden = appState.viewMode === "grid";
+      iconGrid.hidden = appState.viewMode === "list";
+    }
+    viewToggle.classList.toggle("active-list", appState.viewMode === "list");
+    viewToggle.classList.toggle("active-grid", appState.viewMode === "grid");
+  }
+  
+  // Update grid container class
+  const gridContainer = domRefs.evaluationsGrid;
+  if (gridContainer) {
+    gridContainer.classList.toggle("view-list", appState.viewMode === "list");
+    gridContainer.classList.toggle("view-grid", appState.viewMode === "grid");
+  }
+}
+
+function toggleAIFeatures() {
+  appState.aiEnabled = !appState.aiEnabled;
+  try {
+    localStorage.setItem(CONFIG.aiEnabledStorageKey, appState.aiEnabled ? "true" : "false");
+  } catch (e) {
+    console.warn("Could not save AI state:", e);
+  }
+  updateAIFeaturesVisibility();
+}
+
+function updateAIFeaturesVisibility() {
+  // Update toggle button icon
+  const aiToggle = domRefs.aiToggle;
+  if (aiToggle) {
+    const iconOff = aiToggle.querySelector(".ai-icon-off");
+    const iconOn = aiToggle.querySelector(".ai-icon-on");
+    if (iconOff && iconOn) {
+      iconOff.hidden = appState.aiEnabled;
+      iconOn.hidden = !appState.aiEnabled;
+    }
+    aiToggle.classList.toggle("active", appState.aiEnabled);
+  }
+  
+  // Show/hide assistant window
+  const assistantWindow = document.getElementById("assistant-window");
+  const assistantToggleBtn = document.getElementById("assistant-toggle-btn");
+  if (assistantWindow) {
+    if (appState.aiEnabled) {
+      assistantWindow.hidden = false;
+      // Only show if it wasn't previously minimized/closed
+      if (!assistantWindow.classList.contains("hidden")) {
+        assistantWindow.style.display = "flex";
+      }
+    } else {
+      assistantWindow.hidden = true;
+      assistantWindow.style.display = "none";
+    }
+  }
+  if (assistantToggleBtn) {
+    assistantToggleBtn.hidden = !appState.aiEnabled;
+    if (!appState.aiEnabled) {
+      assistantToggleBtn.style.display = "none";
+    }
+  }
+  
+  // Show/hide QA section in overlay
+  const overlayQA = document.getElementById("overlay-qa");
+  if (overlayQA) {
+    overlayQA.hidden = !appState.aiEnabled;
+  }
+  
+  // Notify assistant.js if it's loaded
+  if (window.updateAssistantAIState) {
+    window.updateAssistantAIState(appState.aiEnabled);
+  }
+}
+
 // Event handlers
 function setupEventHandlers() {
   // Navigation
@@ -376,6 +497,20 @@ function setupEventHandlers() {
         try { localStorage.setItem("color-scheme", scheme); } catch {}
         domRefs.colorPickerMenu.hidden = true;
       });
+    });
+  }
+  
+  // AI Toggle
+  if (domRefs.aiToggle) {
+    domRefs.aiToggle.addEventListener("click", () => {
+      toggleAIFeatures();
+    });
+  }
+  
+  // View Toggle
+  if (domRefs.viewToggle) {
+    domRefs.viewToggle.addEventListener("click", () => {
+      toggleViewMode();
     });
   }
   
@@ -618,6 +753,19 @@ async function renderComparison() {
     return;
   }
   
+  // Check if AI is enabled for LLM comparison
+  if (!appState.aiEnabled) {
+    domRefs.compareResults.innerHTML = `
+      <div class="empty-state">
+        <p>AI features are disabled. Enable AI features to use intelligent model comparison.</p>
+        <p style="margin-top: var(--space-2); color: var(--text-tertiary); font-size: 0.875rem;">
+          Use the AI toggle button in the top right to enable AI capabilities.
+        </p>
+      </div>
+    `;
+    return;
+  }
+  
   // Get posts for each model on this specific assignment
   const posts1 = appState.posts.filter(p => 
     p.metrics?.homework_id === assignment && p.metrics?.model_name === model1
@@ -849,14 +997,29 @@ function openOverlay(post) {
   appState.openPost = post;
   appState.qaHistory = [];
   if (domRefs.qaChat) domRefs.qaChat.innerHTML = "";
-  const hasEngine = appState.qaEngine || window.sharedLLMEngine;
-  if (domRefs.qaStatus) {
-    if (hasEngine) {
-      domRefs.qaStatus.textContent = window.sharedLLMEngine ? "Ready (shared)" : "Ready";
-      domRefs.qaStatus.className = "qa-status ready";
-    } else {
-      domRefs.qaStatus.textContent = "Load model in assistant first";
+  
+  // Update QA section visibility based on AI state
+  const overlayQA = document.getElementById("overlay-qa");
+  if (overlayQA) {
+    overlayQA.hidden = !appState.aiEnabled;
+  }
+  
+  if (!appState.aiEnabled) {
+    // Don't initialize QA if AI is disabled
+    if (domRefs.qaStatus) {
+      domRefs.qaStatus.textContent = "";
       domRefs.qaStatus.className = "qa-status";
+    }
+  } else {
+    const hasEngine = appState.qaEngine || window.sharedLLMEngine;
+    if (domRefs.qaStatus) {
+      if (hasEngine) {
+        domRefs.qaStatus.textContent = window.sharedLLMEngine ? "Ready (shared)" : "Ready";
+        domRefs.qaStatus.className = "qa-status ready";
+      } else {
+        domRefs.qaStatus.textContent = "Load model in assistant first";
+        domRefs.qaStatus.className = "qa-status";
+      }
     }
   }
   const metrics = post.metrics || {};
@@ -1031,6 +1194,10 @@ function addQAMessage(role, content, isStreaming = false) {
 
 async function handleQASubmit(e) {
   e.preventDefault();
+  
+  // Don't process if AI is disabled
+  if (!appState.aiEnabled) return;
+  
   const inputEl = domRefs.qaInput || document.getElementById("qa-input");
   const submitEl = document.querySelector("#qa-form button[type='submit']") || document.querySelector(".qa-submit");
   const indicatorEl = domRefs.qaStatus || document.getElementById("qa-status");
@@ -1285,6 +1452,14 @@ function renderHomeworksGrid() {
     return a.localeCompare(b);
   });
 
+  if (appState.viewMode === "list") {
+    renderHomeworksList(sortedHw, hwGroups);
+  } else {
+    renderHomeworksGridView(sortedHw, hwGroups);
+  }
+}
+
+function renderHomeworksGridView(sortedHw, hwGroups) {
   const items = sortedHw.map(hw => {
     const info = hwGroups[hw];
     return `
@@ -1306,7 +1481,41 @@ function renderHomeworksGrid() {
   });
 
   domRefs.evaluationsGrid.innerHTML = items.join("\n");
+  attachHomeworkCardListeners();
+}
 
+function renderHomeworksList(sortedHw, hwGroups) {
+  const items = sortedHw.map(hw => {
+    const info = hwGroups[hw];
+    const modelsList = Array.from(info.models).sort();
+    return `
+      <div class="evaluation-card homework-card homework-card-list" data-hw="${escapeAttr(hw)}" style="cursor: pointer; border-left: 4px solid var(--primary);">
+        <div class="homework-card-content">
+          <div class="homework-card-main">
+            <h3 class="eval-title">${escapeHTML(hw)}</h3>
+            <div class="eval-meta">
+              <span>${info.count} evaluation${info.count !== 1 ? 's' : ''}</span>
+              <span>•</span>
+              <span>${info.models.size} model${info.models.size !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
+          <div class="homework-card-details">
+            <div class="eval-badges">
+              ${modelsList.map(m => `<span class="badge badge-model">${escapeHTML(m)}</span>`).join('')}
+            </div>
+            <div class="eval-stats" style="color: var(--primary);">
+              View Evaluations →
+            </div>
+          </div>
+        </div>
+      </div>`;
+  });
+
+  domRefs.evaluationsGrid.innerHTML = items.join("\n");
+  attachHomeworkCardListeners();
+}
+
+function attachHomeworkCardListeners() {
   // Add click listeners
   domRefs.evaluationsGrid.querySelectorAll('.homework-card').forEach(card => {
     card.addEventListener('click', () => {
@@ -1635,6 +1844,8 @@ async function initialize() {
   initializeDOMReferences();
   initializeTheme();
   initializeColorScheme();
+  initializeAIState();
+  initializeViewMode();
   setupEventHandlers();
   try {
     const [posts, manifest, insights] = await Promise.all([
@@ -1668,6 +1879,7 @@ async function initialize() {
     }
     buildFilterOptions(posts);
     switchPage("explore");
+    updateViewModeUI(); // Ensure view mode UI is updated
     applyFiltersAndUpdate();
     renderAssignmentInsights();
     renderModelInsights();

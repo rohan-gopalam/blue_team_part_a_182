@@ -75,6 +75,16 @@
             </div>
           </div>
         </div>
+        <button class="icon-btn" id="ai-toggle" aria-label="Toggle AI features" title="Enable/Disable AI Features">
+          <svg class="ai-icon-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+            <path d="M2 17l10 5 10-5"></path>
+            <path d="M2 12l10 5 10-5"></path>
+          </svg>
+          <svg class="ai-icon-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" hidden>
+            <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+          </svg>
+        </button>
         <button class="icon-btn" id="theme-toggle" aria-label="Toggle theme">
           <svg class="theme-icon-light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="5"></circle>
@@ -205,6 +215,24 @@
                 <div class="metric-label">Showing</div>
               </div>
             </div>
+            <div class="view-controls">
+              <button class="view-toggle-btn" id="view-toggle" aria-label="Toggle view" title="Switch between list and grid view">
+                <svg class="view-icon-list" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+                <svg class="view-icon-grid" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" hidden>
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+              </button>
+            </div>
           </div>
           <div class="evaluations-grid" id="evaluations-grid"></div>
           <div class="error-banner" id="error-banner" hidden></div>
@@ -280,8 +308,8 @@
           <div class="overlay-files" id="overlay-files"></div>
           <div class="overlay-content" id="overlay-content"></div>
         </div>
-        <div class="overlay-footer">
-          <div class="overlay-qa">
+        <div class="overlay-footer" id="overlay-footer">
+          <div class="overlay-qa" id="overlay-qa" hidden>
             <div class="qa-header-row">
               <h4>Ask About This</h4>
               <span class="qa-status" id="qa-status">Ready</span>
@@ -309,7 +337,7 @@
     </button>
 
     <!-- Draggable & Resizable AI Assistant -->
-    <div class="assistant-window" id="assistant-window">
+    <div class="assistant-window" id="assistant-window" hidden>
       <!-- Corner handles -->
       <div class="assistant-resize-handle assistant-resize-nw" id="assistant-resize-nw"></div>
       <div class="assistant-resize-handle assistant-resize-ne" id="assistant-resize-ne"></div>

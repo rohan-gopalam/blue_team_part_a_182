@@ -77,9 +77,9 @@
     "files": [
       {
         "original_filename": "Deepseek_response_log.pdf",
-        "saved_as": "files/HW0_Claude-Opus/Deepseek_response_log.pdf",
+        "saved_as": "files/HW0_DeepSeek/Deepseek_response_log.pdf",
         "url": "https://static.us.edusercontent.com/files/381SGWQebSs2VDf6WgXKNXFU",
-        "transcript": "files/HW0_Claude-Opus/Deepseek_response_log.txt"
+        "transcript": "files/HW0_DeepSeek/Deepseek_response_log.txt"
       }
     ]
   },
@@ -89,9 +89,9 @@
     "files": [
       {
         "original_filename": "Chat-Annotions.pdf",
-        "saved_as": "files/HW11_GPT-5.1/Chat-Annotions.pdf",
+        "saved_as": "files/HW1_Gemma/Chat-Annotions.pdf",
         "url": "https://static.us.edusercontent.com/files/VdgmeiZD08IZaR7Mvkm6j19g",
-        "transcript": "files/HW11_GPT-5.1/Chat-Annotions.txt"
+        "transcript": "files/HW1_Gemma/Chat-Annotions.txt"
       }
     ]
   },
@@ -131,9 +131,9 @@
     "files": [
       {
         "original_filename": "ParticipationA.pdf",
-        "saved_as": "files/HW11_GPT-5.1/ParticipationA.pdf",
+        "saved_as": "files/HW1_DeepSeek/ParticipationA.pdf",
         "url": "https://static.us.edusercontent.com/files/PiEONdQT9yieWxcjOGdGJHdo",
-        "transcript": "files/HW11_GPT-5.1/ParticipationA.txt"
+        "transcript": "files/HW1_DeepSeek/ParticipationA.txt"
       }
     ]
   },

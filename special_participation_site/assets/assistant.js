@@ -813,19 +813,14 @@ function initialize() {
     console.error("Assistant form not found");
   }
   
-  // Ensure window is visible by default
-  if (uiElements.window) {
-    uiElements.window.classList.remove("hidden");
-    uiElements.window.style.display = "flex";
-  }
-  if (uiElements.body) {
-    uiElements.body.hidden = false;
-    uiElements.body.style.display = "flex";
-  }
-  if (uiElements.toggleBtn) {
-    uiElements.toggleBtn.hidden = true;
-    uiElements.toggleBtn.style.display = "none";
-  }
+  // Initially hide assistant - will be shown if AI is enabled
+  updateAssistantVisibility(false);
+  
+  // Check AI enabled state from app state (wait a bit for app.js to initialize)
+  setTimeout(() => {
+    const aiEnabled = window.appState?.aiEnabled || false;
+    updateAssistantVisibility(aiEnabled);
+  }, 100);
   
   setupEventHandlers();
 
@@ -864,6 +859,39 @@ function initialize() {
     }, 1000);
   }
 }
+
+function updateAssistantVisibility(enabled) {
+  if (!uiElements.window) return;
+  
+  if (enabled) {
+    // Show assistant if it was previously visible
+    if (!uiElements.window.classList.contains("hidden")) {
+      uiElements.window.style.display = "flex";
+    }
+    if (uiElements.toggleBtn && !uiElements.toggleBtn.classList.contains("hidden")) {
+      uiElements.toggleBtn.style.display = "flex";
+    }
+  } else {
+    // Hide assistant completely
+    uiElements.window.hidden = true;
+    uiElements.window.style.display = "none";
+    if (uiElements.toggleBtn) {
+      uiElements.toggleBtn.hidden = true;
+      uiElements.toggleBtn.style.display = "none";
+    }
+    // Unload any loaded models to free resources
+    if (assistantState.llmEngine) {
+      assistantState.llmEngine.unload().catch(e => console.warn("Error unloading model:", e));
+      assistantState.llmEngine = null;
+    }
+    if (window.sharedLLMEngine && window.sharedLLMEngine === assistantState.llmEngine) {
+      window.sharedLLMEngine = null;
+    }
+  }
+}
+
+// Expose function for app.js to call
+window.updateAssistantAIState = updateAssistantVisibility;
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initialize);
