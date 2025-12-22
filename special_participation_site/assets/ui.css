@@ -944,6 +944,38 @@ body.theme-dark .theme-icon-dark {
   margin-bottom: var(--space-xl);
 }
 
+.compare-filters {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.compare-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.compare-filter-group label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.compare-filter-select {
+  padding: var(--space-md);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  font-family: var(--font-main);
+  cursor: pointer;
+}
+
 .compare-add-section {
   display: flex;
   gap: var(--space-md);

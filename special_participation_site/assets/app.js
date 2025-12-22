@@ -70,6 +70,8 @@ function initializeDOMReferences() {
   domRefs.errorBanner = document.getElementById("error-banner");
   
   // Compare page
+  domRefs.compareFilterHw = document.getElementById("compare-filter-hw");
+  domRefs.compareFilterModel = document.getElementById("compare-filter-model");
   domRefs.comparePostSelect = document.getElementById("compare-post-select");
   domRefs.compareAddBtn = document.getElementById("compare-add-btn");
   domRefs.compareSelectedPosts = document.getElementById("compare-selected-posts");
@@ -538,6 +540,14 @@ function setupEventHandlers() {
     });
   }
   
+  if (domRefs.compareFilterHw) {
+    domRefs.compareFilterHw.addEventListener("change", updateComparePostOptions);
+  }
+  
+  if (domRefs.compareFilterModel) {
+    domRefs.compareFilterModel.addEventListener("change", updateComparePostOptions);
+  }
+  
   // Initialize compare state
   if (!appState.comparePosts) {
     appState.comparePosts = [];
@@ -710,17 +720,69 @@ function updateFilterChips() {
 function initializeComparePage() {
   if (!domRefs.comparePostSelect) return;
   
-  // Populate post dropdown with all posts
-  const sortedPosts = appState.posts.slice().sort((a, b) => {
+  // Populate filter dropdowns
+  const assignments = new Set();
+  const models = new Set();
+  appState.posts.forEach(p => {
+    const metrics = p.metrics || {};
+    if (metrics.homework_id) assignments.add(metrics.homework_id);
+    if (metrics.model_name) models.add(metrics.model_name);
+  });
+  
+  const sortedAssignments = Array.from(assignments).sort((a, b) => {
+    const numA = parseInt(a.replace(/\D/g, ''), 10) || 0;
+    const numB = parseInt(b.replace(/\D/g, ''), 10) || 0;
+    if (a === "Unknown") return 1;
+    if (b === "Unknown") return -1;
+    return numA - numB;
+  });
+  
+  const sortedModels = Array.from(models).sort();
+  
+  if (domRefs.compareFilterHw) {
+    domRefs.compareFilterHw.innerHTML = '<option value="">All Homeworks</option>' + 
+      sortedAssignments.map(a => `<option value="${escapeAttr(a)}">${escapeHTML(a)}</option>`).join('');
+  }
+  
+  if (domRefs.compareFilterModel) {
+    domRefs.compareFilterModel.innerHTML = '<option value="">All Models</option>' + 
+      sortedModels.map(m => `<option value="${escapeAttr(m)}">${escapeHTML(m)}</option>`).join('');
+  }
+  
+  updateComparePostOptions();
+  renderCompareSelectedPosts();
+  renderComparison();
+}
+
+function updateComparePostOptions() {
+  if (!domRefs.comparePostSelect) return;
+  
+  const hwFilter = domRefs.compareFilterHw?.value || "";
+  const modelFilter = domRefs.compareFilterModel?.value || "";
+  
+  // Filter posts based on selected filters
+  let filteredPosts = appState.posts.filter(post => {
+    const metrics = post.metrics || {};
+    if (hwFilter && metrics.homework_id !== hwFilter) return false;
+    if (modelFilter && metrics.model_name !== modelFilter) return false;
+    return true;
+  });
+  
+  // Sort by date (newest first)
+  filteredPosts.sort((a, b) => {
     const dateA = parseDate(a.created_at);
     const dateB = parseDate(b.created_at);
     if (!dateA && !dateB) return 0;
     if (!dateA) return 1;
     if (!dateB) return -1;
-    return dateB - dateA; // Newest first
+    return dateB - dateA;
   });
   
-  const optionsHTML = '<option value="">Select a post to add...</option>' + sortedPosts.map(post => {
+  // Exclude posts already in comparison
+  const selectedNumbers = new Set(appState.comparePosts.map(p => p.number));
+  filteredPosts = filteredPosts.filter(p => !selectedNumbers.has(p.number));
+  
+  const optionsHTML = '<option value="">Select a post to add...</option>' + filteredPosts.map(post => {
     const metrics = post.metrics || {};
     const hw = metrics.homework_id || "Unknown";
     const model = metrics.model_name || "Unknown";
@@ -730,8 +792,6 @@ function initializeComparePage() {
   }).join('');
   
   domRefs.comparePostSelect.innerHTML = optionsHTML;
-  renderCompareSelectedPosts();
-  renderComparison();
 }
 
 function addPostToComparison() {
@@ -750,12 +810,14 @@ function addPostToComparison() {
   
   appState.comparePosts.push(post);
   domRefs.comparePostSelect.value = "";
+  updateComparePostOptions(); // Update to exclude the newly added post
   renderCompareSelectedPosts();
   renderComparison();
 }
 
 function removePostFromComparison(postNumber) {
   appState.comparePosts = appState.comparePosts.filter(p => p.number !== postNumber);
+  updateComparePostOptions(); // Update to include the removed post back in options
   renderCompareSelectedPosts();
   renderComparison();
 }

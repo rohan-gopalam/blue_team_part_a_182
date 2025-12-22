@@ -204,7 +204,7 @@
     },
     "ed_url": "https://edstem.org/us/courses/84647/discussion/7451771",
     "metrics": {
-      "homework_id": "Unknown",
+      "homework_id": "HW8",
       "model_name": "GPT-5.1",
       "depth_bucket": "low",
       "word_count": 28
@@ -3126,7 +3126,7 @@
     },
     "ed_url": "https://edstem.org/us/courses/84647/discussion/7407541",
     "metrics": {
-      "homework_id": "Unknown",
+      "homework_id": "HW5",
       "model_name": "DeepSeek",
       "depth_bucket": "low",
       "word_count": 49
